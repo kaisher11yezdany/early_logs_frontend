@@ -8,13 +8,21 @@ dotenv.config();
 const app = express();
 
 // Middleware
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  process.env.FRONTEND_URL,        // set this in Render env vars after Vercel deploy
-].filter(Boolean);
-
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    const allowed =
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.railway.app') ||
+      origin === 'http://localhost:5173' ||
+      origin === 'http://127.0.0.1:5173' ||
+      origin === process.env.FRONTEND_URL;
+    if (allowed) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
