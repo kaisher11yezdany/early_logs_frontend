@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, GraduationCap, User, MapPin, Users, BookOpen,
   FileText, CheckCircle2, XCircle, Phone,
-  Hash, Pencil, Trash2, AlertTriangle
+  Hash, Pencil, Trash2, AlertTriangle, Download, FileCheck
 } from 'lucide-react';
 import api from '../../api/axios';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -304,6 +304,18 @@ export default function ViewStudent() {
           </SectionCard>
         </div>
 
+        {/* Guardian Details (only if filled) */}
+        {(s.parentInfo?.guardian?.name || s.parentInfo?.guardian?.phone) && (
+          <SectionCard icon={Users} title="Guardian Details" color="purple">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Field label="Name" value={s.parentInfo?.guardian?.name} />
+              <Field label="Relation" value={s.parentInfo?.guardian?.relation} />
+              <Field label="Aadhar No" value={s.parentInfo?.guardian?.aadharNo} mono />
+              <Field label="Phone" value={s.parentInfo?.guardian?.phone} />
+            </div>
+          </SectionCard>
+        )}
+
         {/* 6. Previous School */}
         <SectionCard icon={BookOpen} title="Previous School Records" color="teal">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -338,6 +350,42 @@ export default function ViewStudent() {
             </div>
           )}
         </SectionCard>
+
+        {/* Uploaded Documents */}
+        {s.documentUploads && Object.values(s.documentUploads).some(d => d?.filename) && (
+          <SectionCard icon={FileCheck} title="Uploaded Documents" color="teal">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { key: 'studentAadhar',       label: "Student's Aadhar Card" },
+                { key: 'fatherAadhar',        label: "Father's Aadhar Card" },
+                { key: 'motherAadhar',        label: "Mother's Aadhar Card" },
+                { key: 'guardianAadhar',      label: "Guardian's Aadhar Card" },
+                { key: 'transferCertificate', label: 'Transfer Certificate' },
+              ].filter(item => s.documentUploads[item.key]?.filename).map(item => {
+                const doc = s.documentUploads[item.key];
+                // In dev the Vite proxy forwards /uploads → localhost:5000/uploads.
+                // In prod VITE_API_URL is the full Railway base so we strip /api.
+                const base = import.meta.env.VITE_API_URL
+                  ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
+                  : '';
+                const url = `${base}/uploads/${doc.filename}`;
+                return (
+                  <a key={item.key} href={url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 transition group">
+                    <div className="w-9 h-9 rounded-lg bg-teal-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-teal-800">{item.label}</p>
+                      <p className="text-xs text-teal-500 truncate">{doc.originalName}</p>
+                    </div>
+                    <Download className="w-4 h-4 text-teal-500 group-hover:text-teal-700 shrink-0" />
+                  </a>
+                );
+              })}
+            </div>
+          </SectionCard>
+        )}
 
         {/* Transport (conditional) */}
         {s.transport?.enrolled && (
