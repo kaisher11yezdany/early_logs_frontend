@@ -1,40 +1,30 @@
 import { useEffect, useState } from 'react';
-import { Users, GraduationCap, BookOpen, DollarSign, Bell, TrendingUp, UserCheck, AlertCircle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import { Users, GraduationCap, BookOpen, DollarSign, Bell, TrendingUp, UserCheck } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import StatCard from '../../components/common/StatCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import api from '../../api/axios';
 import { format } from 'date-fns';
 
-const mockAttendance = [
-  { day: 'Mon', present: 92, absent: 8 },
-  { day: 'Tue', present: 88, absent: 12 },
-  { day: 'Wed', present: 95, absent: 5 },
-  { day: 'Thu', present: 87, absent: 13 },
-  { day: 'Fri', present: 90, absent: 10 },
-];
-
-const mockFeeData = [
-  { month: 'Jan', collected: 85000 },
-  { month: 'Feb', collected: 92000 },
-  { month: 'Mar', collected: 88000 },
-  { month: 'Apr', collected: 95000 },
-];
+const fmt = n => `₹${(n || 0).toLocaleString('en-IN')}`;
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(null);
-  const [notices, setNotices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats]       = useState(null);
+  const [feeStats, setFeeStats] = useState(null);
+  const [notices, setNotices]   = useState([]);
+  const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, noticesRes] = await Promise.all([
+        const [statsRes, noticesRes, feeRes] = await Promise.all([
           api.get('/users/stats/summary'),
-          api.get('/notices')
+          api.get('/notices'),
+          api.get('/fees/summary/stats?year=2024-25'),
         ]);
         setStats(statsRes.data.stats);
         setNotices(noticesRes.data.notices?.slice(0, 5) || []);
+        setFeeStats(feeRes.data.stats || null);
       } catch (err) {
         console.error(err);
       } finally {
@@ -64,31 +54,72 @@ export default function AdminDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* User Role Breakdown */}
         <div className="card">
-          <h3 className="text-gray-700 mb-4">Weekly Attendance Overview</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={mockAttendance}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="present" fill="#3b82f6" name="Present" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="absent" fill="#fca5a5" name="Absent" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="text-gray-700 mb-4">User Distribution by Role</h3>
+          {stats ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={[
+                { role: 'Students',   count: stats.totalStudents  || 0 },
+                { role: 'Teachers',   count: stats.totalTeachers  || 0 },
+                { role: 'Parents',    count: stats.totalParents   || 0 },
+                { role: 'Others',     count: Math.max(0, (stats.totalUsers || 0) - (stats.totalStudents || 0) - (stats.totalTeachers || 0) - (stats.totalParents || 0)) },
+              ]} barSize={36}>
+                <XAxis dataKey="role" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" name="Users" radius={[6, 6, 0, 0]}
+                  fill="url(#barGrad)" />
+                <defs>
+                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#6366f1" />
+                  </linearGradient>
+                </defs>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-sm text-gray-400 text-center py-10">Loading…</p>}
         </div>
 
+        {/* Fee Collection Summary */}
         <div className="card">
-          <h3 className="text-gray-700 mb-4">Monthly Fee Collection (₹)</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={mockFeeData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v) => [`₹${v.toLocaleString('en-IN')}`, 'Collected']} />
-              <Line type="monotone" dataKey="collected" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <h3 className="text-gray-700 mb-1">Fee Collection · 2024-25</h3>
+          {feeStats ? (
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width="50%" height={180}>
+                <PieChart>
+                  <Pie data={[
+                    { name: 'Collected', value: feeStats.totalPaid || 0 },
+                    { name: 'Due',       value: feeStats.totalDue  || 0 },
+                  ]} cx="50%" cy="50%" innerRadius={50} outerRadius={75}
+                    dataKey="value" paddingAngle={3}>
+                    <Cell fill="#10b981" />
+                    <Cell fill="#fca5a5" />
+                  </Pie>
+                  <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v, name) => [fmt(v), name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-3">
+                <div>
+                  <p className="text-xs text-gray-400">Total Billed</p>
+                  <p className="font-bold text-gray-800">{fmt(feeStats.totalAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Collected</p>
+                  <p className="font-bold text-green-600">{fmt(feeStats.totalPaid)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Outstanding</p>
+                  <p className="font-bold text-red-500">{fmt(feeStats.totalDue)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Students</p>
+                  <p className="font-bold text-gray-700">{feeStats.totalStudents || 0}</p>
+                </div>
+              </div>
+            </div>
+          ) : <p className="text-sm text-gray-400 text-center py-10">Loading…</p>}
         </div>
       </div>
 

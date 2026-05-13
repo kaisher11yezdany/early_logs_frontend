@@ -123,7 +123,7 @@ export default function App() {
             <Route path="/student/assignments" element={<MyAssignments />} />
             <Route path="/student/exams" element={<MyExams />} />
             <Route path="/student/timetable" element={<TimetableView />} />
-            <Route path="/student/fees" element={<ComingSoon title="Fee Details" />} />
+            <Route path="/student/fees" element={<ParentFees />} />
             <Route path="/student/notices" element={<NoticesPage />} />
           </Route>
 
