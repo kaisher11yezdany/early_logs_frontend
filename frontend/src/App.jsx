@@ -16,6 +16,8 @@ import ViewStudent from './pages/admin/ViewStudent';
 import EditStudent from './pages/admin/EditStudent';
 import FeeManagement from './pages/admin/FeeManagement';
 import NoticeManagement from './pages/admin/NoticeManagement';
+import TimetableAdmin from './pages/admin/Timetable';
+import TimetableView from './pages/shared/TimetableView';
 
 // Teacher
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
@@ -98,6 +100,7 @@ export default function App() {
             <Route path="/admin/students/:id" element={<ViewStudent />} />
             <Route path="/admin/fees" element={<FeeManagement />} />
             <Route path="/admin/notices" element={<NoticeManagement />} />
+            <Route path="/admin/timetable" element={<TimetableAdmin />} />
             <Route path="/admin/exams" element={<ComingSoon title="Exam Management" />} />
             <Route path="/admin/reports" element={<ComingSoon title="Reports & Analytics" />} />
           </Route>
@@ -109,7 +112,7 @@ export default function App() {
             <Route path="/teacher/attendance" element={<AttendanceMarking />} />
             <Route path="/teacher/assignments" element={<TeacherAssignments />} />
             <Route path="/teacher/exams" element={<ComingSoon title="Exams & Marks" />} />
-            <Route path="/teacher/timetable" element={<ComingSoon title="Timetable" />} />
+            <Route path="/teacher/timetable" element={<TimetableView />} />
             <Route path="/teacher/notices" element={<NoticesPage />} />
           </Route>
 
@@ -119,8 +122,8 @@ export default function App() {
             <Route path="/student/attendance" element={<MyAttendance />} />
             <Route path="/student/assignments" element={<MyAssignments />} />
             <Route path="/student/exams" element={<MyExams />} />
-            <Route path="/student/timetable" element={<ComingSoon title="My Timetable" />} />
-            <Route path="/student/fees" element={<ComingSoon title="Fee Details" />} />
+            <Route path="/student/timetable" element={<TimetableView />} />
+            <Route path="/student/fees" element={<ParentFees />} />
             <Route path="/student/notices" element={<NoticesPage />} />
           </Route>
 

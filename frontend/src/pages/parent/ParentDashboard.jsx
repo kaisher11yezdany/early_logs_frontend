@@ -22,8 +22,12 @@ export default function ParentDashboard() {
           api.get('/fees/my/fees')
         ]);
         setNotices(noticeRes.data.notices?.slice(0, 4) || []);
-        const fees = feeRes.data.payments || [];
-        setPendingFees(fees.filter(f => f.status === 'pending' || f.status === 'overdue').reduce((s, f) => s + (f.dueAmount || 0), 0));
+        const feeRecords = feeRes.data.feeRecords || [];
+        const totalDue = feeRecords.reduce((sum, record) => {
+          const paid = record.payments?.reduce((s, p) => s + (p.amount || 0), 0) || 0;
+          return sum + Math.max(0, (record.totalAmount || 0) - paid);
+        }, 0);
+        setPendingFees(totalDue);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };

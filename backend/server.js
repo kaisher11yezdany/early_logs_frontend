@@ -1,9 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 dotenv.config();
+
+// Ensure uploads directory exists at startup
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
 
@@ -12,12 +18,20 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
+
+    // Support multiple frontend URLs via comma-separated FRONTEND_URLS env var
+    const extraUrls = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+      .split(',').map(u => u.trim()).filter(Boolean);
+
     const allowed =
       origin.endsWith('.vercel.app') ||
       origin.endsWith('.railway.app') ||
+      origin.endsWith('.amplifyapp.com') ||
+      origin.endsWith('.cloudfront.net') ||
       origin === 'http://localhost:5173' ||
       origin === 'http://127.0.0.1:5173' ||
-      origin === process.env.FRONTEND_URL;
+      extraUrls.includes(origin);
+
     if (allowed) return callback(null, true);
     callback(new Error(`CORS blocked: ${origin}`));
   },
@@ -25,6 +39,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded documents
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -36,6 +53,7 @@ app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/fees', require('./routes/fees'));
 app.use('/api/notices', require('./routes/notices'));
 app.use('/api/exams', require('./routes/exams'));
+app.use('/api/timetable', require('./routes/timetable'));
 
 // Health check
 app.get('/api/health', (req, res) => {
