@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -186,6 +186,13 @@ export default function StudentManagement() {
                           title="View student"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/admin/students/${s._id}/edit`)}
+                          className="p-1.5 rounded text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                          title="Edit student"
+                        >
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setDeleteTarget({ _id: s._id, name: s.user?.name })}

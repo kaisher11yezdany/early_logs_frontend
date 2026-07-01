@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Save, CheckCircle,
-  ClipboardList, User, MapPin, Users, BookOpen, FileText, Check
+  ClipboardList, User, MapPin, Users, BookOpen, FileText, Check,
+  Upload, FileCheck, X, Camera
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -50,7 +51,82 @@ const INIT = {
   // Section 6 – Documents
   docAadhar: false, docTc: false, docBirth: false,
   docBpl: false, docCaste: false, docConduct: false,
+  // Guardian info
+  guardianName: '', guardianRelation: '', guardianAadharNo: '', guardianPhone: '',
 };
+
+// ── Photo Upload Field ─────────────────────────────────────────────────────────
+function PhotoUploadField({ photoFile, existingPhotoUrl, onPhotoChange }) {
+  const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl || null;
+  return (
+    <div className="sm:col-span-2 flex flex-col items-center gap-2 py-2">
+      <div className="relative">
+        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-100 bg-gray-100 flex items-center justify-center">
+          {previewUrl
+            ? <img src={previewUrl} className="w-full h-full object-cover" alt="Student photo" />
+            : <User className="w-10 h-10 text-gray-300" />
+          }
+        </div>
+        <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition shadow-md">
+          <Camera className="w-4 h-4 text-white" />
+          <input type="file" className="sr-only" accept="image/jpeg,image/jpg,image/png"
+            onChange={e => onPhotoChange(e.target.files[0] || null)} />
+        </label>
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-gray-600">Student Photo</p>
+        <p className="text-xs text-gray-400">JPG, PNG · max 5 MB · used on ID card</p>
+      </div>
+      {photoFile && (
+        <button type="button" onClick={() => onPhotoChange(null)}
+          className="text-xs text-red-500 hover:text-red-600 transition">
+          Remove photo
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── File Upload Field ──────────────────────────────────────────────────────────
+function FileUploadField({ label, fieldName, file, onFileChange }) {
+  return (
+    <div>
+      <label className="label">
+        {label}
+        <span className="text-gray-400 text-xs font-normal ml-1">(Optional · PDF / JPG / PNG · max 5 MB)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-3 transition ${file ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-200'}`}>
+        {!file ? (
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+              <Upload className="w-4 h-4 text-gray-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Click to upload</p>
+              <p className="text-xs text-gray-400">PDF, JPG, PNG up to 5 MB</p>
+            </div>
+            <input type="file" className="sr-only" accept=".pdf,.jpg,.jpeg,.png"
+              onChange={e => onFileChange(fieldName, e.target.files[0] || null)} />
+          </label>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+              <FileCheck className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-700 truncate">{file.name}</p>
+              <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+            </div>
+            <button type="button" onClick={() => onFileChange(fieldName, null)}
+              className="p-1 text-gray-400 hover:text-red-500 transition rounded">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Field helper ──────────────────────────────────────────────────────────────
 function Field({ label, required, children }) {
@@ -96,6 +172,13 @@ export default function AddStudent() {
   const [classes, setClasses] = useState([]);
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState(new Set());
+  const [files, setFiles] = useState({
+    photo: null,
+    studentAadhar: null, fatherAadhar: null, motherAadhar: null,
+    guardianAadhar: null, transferCertificate: null
+  });
+
+  const onFileChange = (field, file) => setFiles(f => ({ ...f, [field]: file }));
 
   useEffect(() => {
     api.get('/classes').then(r => setClasses(r.data.classes || []));
@@ -185,6 +268,12 @@ export default function AddStudent() {
             name: form.motherName, qualification: form.motherQualification,
             occupation: form.motherOccupation, aadharNo: form.motherAadhar,
             email: form.motherEmail, phone: form.motherPhone
+          },
+          guardian: {
+            name:     form.guardianName,
+            relation: form.guardianRelation,
+            aadharNo: form.guardianAadharNo,
+            phone:    form.guardianPhone
           }
         },
         // Previous school
@@ -205,8 +294,20 @@ export default function AddStudent() {
       };
 
       const res = await api.post('/students', payload);
+      const studentId = res.data.student._id;
+
+      // Upload files if any were selected
+      const hasFiles = Object.values(files).some(Boolean);
+      if (hasFiles) {
+        const fd = new FormData();
+        Object.entries(files).forEach(([key, file]) => { if (file) fd.append(key, file); });
+        await api.post(`/students/${studentId}/uploads`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
       toast.success('Student enrolled successfully!');
-      navigate(`/admin/students/${res.data.student._id}`);
+      navigate(`/admin/students/${studentId}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save student');
     } finally {
@@ -313,6 +414,10 @@ export default function AddStudent() {
             {/* ── Section 1: Student Information ── */}
             {step === 1 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <PhotoUploadField
+                  photoFile={files.photo}
+                  onPhotoChange={f => onFileChange('photo', f)}
+                />
                 <div className="sm:col-span-2">
                   <Field label="Name of Student (as per Birth Certificate)" required>
                     <Input name="name" form={form} onChange={onChange} placeholder="Full name exactly as on birth certificate" />
@@ -350,6 +455,10 @@ export default function AddStudent() {
                 <Field label="Blood Group">
                   <Select name="bloodGroup" form={form} onChange={onChange} options={BLOOD_GROUPS} placeholder="Select blood group..." />
                 </Field>
+                <div className="sm:col-span-2">
+                  <FileUploadField label="Student Aadhar Card (Upload)"
+                    fieldName="studentAadhar" file={files.studentAadhar} onFileChange={onFileChange} />
+                </div>
               </div>
             )}
 
@@ -429,6 +538,10 @@ export default function AddStudent() {
                     <Input name="fatherEmail" form={form} onChange={onChange} type="email" placeholder="Father's email address" />
                   </Field>
                 </div>
+                <div className="sm:col-span-2">
+                  <FileUploadField label="Father's Aadhar Card (Upload)"
+                    fieldName="fatherAadhar" file={files.fatherAadhar} onFileChange={onFileChange} />
+                </div>
               </div>
             )}
 
@@ -456,6 +569,10 @@ export default function AddStudent() {
                   <Field label="E-Mail ID">
                     <Input name="motherEmail" form={form} onChange={onChange} type="email" placeholder="Mother's email address" />
                   </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <FileUploadField label="Mother's Aadhar Card (Upload)"
+                    fieldName="motherAadhar" file={files.motherAadhar} onFileChange={onFileChange} />
                 </div>
               </div>
             )}
@@ -497,6 +614,10 @@ export default function AddStudent() {
                 <Field label="UDISE Code">
                   <Input name="prevUdiseCode" form={form} onChange={onChange} placeholder="UDISE Code" />
                 </Field>
+                <div className="sm:col-span-2">
+                  <FileUploadField label="Transfer Certificate (Upload)"
+                    fieldName="transferCertificate" file={files.transferCertificate} onFileChange={onFileChange} />
+                </div>
               </div>
             )}
 
@@ -525,8 +646,31 @@ export default function AddStudent() {
                   </label>
                 ))}
 
+                {/* Guardian Information */}
+                <div className="pt-3 border-t border-gray-100">
+                  <p className="text-sm font-semibold text-gray-600 mb-3">Guardian Details <span className="text-gray-400 font-normal">(if different from parents)</span></p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Guardian Name">
+                      <Input name="guardianName" form={form} onChange={onChange} placeholder="Full name of guardian" />
+                    </Field>
+                    <Field label="Relation to Student">
+                      <Input name="guardianRelation" form={form} onChange={onChange} placeholder="e.g. Uncle, Grandparent" />
+                    </Field>
+                    <Field label="Guardian Aadhar No">
+                      <Input name="guardianAadharNo" form={form} onChange={onChange} placeholder="12-digit Aadhar number" />
+                    </Field>
+                    <Field label="Guardian Contact No">
+                      <Input name="guardianPhone" form={form} onChange={onChange} placeholder="10-digit mobile number" />
+                    </Field>
+                    <div className="sm:col-span-2">
+                      <FileUploadField label="Guardian's Aadhar Card (Upload)"
+                        fieldName="guardianAadhar" file={files.guardianAadhar} onFileChange={onFileChange} />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Summary */}
-                <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
                   <p className="text-sm font-semibold text-blue-800 mb-1">Enrollment Summary</p>
                   <div className="grid grid-cols-2 gap-1 text-xs text-blue-700">
                     <span>Student:</span><span className="font-medium">{form.name || '—'}</span>

@@ -1,4 +1,5 @@
-import { X, Printer, CreditCard } from 'lucide-react';
+import { useState } from 'react';
+import { X, Printer, CreditCard, Download } from 'lucide-react';
 
 // Native image size (both cards are 296×502 px)
 const W = 296;
@@ -11,6 +12,126 @@ function fmt(d) {
       day: '2-digit', month: '2-digit', year: 'numeric',
     });
   } catch { return '—'; }
+}
+
+// ── Canvas helpers ────────────────────────────────────────────────────────────
+function loadImage(src, crossOrigin = false) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    if (crossOrigin) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function roundedClip(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+async function downloadCards(student) {
+  const name  = student.user?.name  || '—';
+  const cls   = student.class
+    ? `${student.class.name}${student.class.section ? ' - ' + student.class.section : ''}`
+    : '—';
+  const phone = student.user?.phone || '—';
+  const dob   = fmt(student.dateOfBirth);
+  const blood = student.bloodGroup  || '—';
+  const base  = (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '');
+  const photoUrl = student.photo
+    ? (student.photo.startsWith('http') ? student.photo : `${base}${student.photo}`)
+    : null;
+
+  const safeName = name.replace(/\s+/g, '_');
+
+  // ── Front card ──────────────────────────────────────────────────────────────
+  const fc = document.createElement('canvas');
+  fc.width = W; fc.height = H;
+  const ctx = fc.getContext('2d');
+
+  const frontImg = await loadImage('/id-card-front.png');
+  ctx.drawImage(frontImg, 0, 0, W, H);
+
+  // Photo box (mirrors React: left=79 top=130 w=144 h=150 r=10)
+  ctx.save();
+  roundedClip(ctx, 79, 130, 144, 150, 10);
+  ctx.clip();
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(79, 130, 144, 150);
+
+  if (photoUrl) {
+    try {
+      const photo = await loadImage(photoUrl, true);
+      // Cover fit
+      const pr = photo.width / photo.height;
+      const br = 144 / 150;
+      let sx = 0, sy = 0, sw = photo.width, sh = photo.height;
+      if (pr > br) { sw = photo.height * br; sx = (photo.width - sw) / 2; }
+      else         { sh = photo.width / br;  sy = (photo.height - sh) / 2; }
+      ctx.drawImage(photo, sx, sy, sw, sh, 79, 130, 144, 150);
+    } catch {
+      // Fallback: draw initial
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 52px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(name.charAt(0).toUpperCase(), 79 + 72, 130 + 75);
+    }
+  } else {
+    // No photo — draw initial
+    ctx.fillStyle = '#1e3a8a';
+    ctx.font = 'bold 52px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name.charAt(0).toUpperCase(), 79 + 72, 130 + 75);
+  }
+  ctx.restore();
+
+  // Student name (mirrors React: top=292, center, uppercase, bold 17px)
+  ctx.fillStyle = '#1e3a8a';
+  ctx.font = '900 17px "Arial Black", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(name.toUpperCase(), W / 2, 292);
+
+  // Field values (mirrors React: left=154, fontSize=11, top=330/356/381/407)
+  ctx.font = '600 11px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  [[cls, 330], [phone, 356], [dob, 381], [blood, 407]].forEach(([val, top]) => {
+    ctx.fillText(val, 154, top);
+  });
+
+  // Trigger download
+  const a = document.createElement('a');
+  a.download = `${safeName}_id-card-front.png`;
+  a.href = fc.toDataURL('image/png');
+  a.click();
+
+  // Small delay so browser doesn't block the second download
+  await new Promise(r => setTimeout(r, 400));
+
+  // ── Back card (pure image, no overlays) ────────────────────────────────────
+  const bc = document.createElement('canvas');
+  bc.width = W; bc.height = H;
+  const bctx = bc.getContext('2d');
+  const backImg = await loadImage('/id-card-back.png');
+  bctx.drawImage(backImg, 0, 0, W, H);
+
+  const b = document.createElement('a');
+  b.download = `${safeName}_id-card-back.png`;
+  b.href = bc.toDataURL('image/png');
+  b.click();
 }
 
 // ── Front card: image template + absolute overlays ──────────────────────────
@@ -28,8 +149,6 @@ function CardFront({ s }) {
     ? (s.photo.startsWith('http') ? s.photo : `${base}${s.photo}`)
     : null;
 
-  // All pixel values are in the 296×502 native coordinate space.
-  // The outer div is exactly W×H so absolute children hit the right spots.
   return (
     <div style={{ position: 'relative', width: W, height: H, flexShrink: 0 }}>
 
@@ -40,9 +159,7 @@ function CardFront({ s }) {
         style={{ width: W, height: H, display: 'block' }}
       />
 
-      {/* ── Student photo ────────────────────────────────────────── */}
-      {/* Fills the full inner area of the blue border frame.
-          Blue frame inner area: left≈56, top≈100, width≈184, height≈162  */}
+      {/* Student photo */}
       <div style={{
         position: 'absolute', left: 79, top: 130, width: 144, height: 150,
         borderRadius: 10, overflow: 'hidden',
@@ -61,8 +178,7 @@ function CardFront({ s }) {
         }
       </div>
 
-      {/* ── Student name ─────────────────────────────────────────── */}
-      {/* Sits below the blue border frame with clear gap */}
+      {/* Student name */}
       <div style={{
         position: 'absolute', left: 0, top: 292, width: W,
         textAlign: 'center',
@@ -75,10 +191,7 @@ function CardFront({ s }) {
         {name}
       </div>
 
-      {/* ── Field values ─────────────────────────────────────────── */}
-      {/* Labels (Class / Phone No. / Date of Birth / Blood Group) are
-          baked into the image. We overlay only the values to the right
-          of each colon. Y positions measured in 296×502 native space. */}
+      {/* Field values */}
       {[
         { value: cls,   top: 330 },
         { value: phone, top: 356 },
@@ -100,7 +213,7 @@ function CardFront({ s }) {
   );
 }
 
-// ── Back card: pure image, no overlays needed ────────────────────────────────
+// ── Back card: pure image, no overlays needed ─────────────────────────────────
 function CardBack() {
   return (
     <div style={{ position: 'relative', width: W, height: H, flexShrink: 0 }}>
@@ -115,6 +228,19 @@ function CardBack() {
 
 // ── Modal ────────────────────────────────────────────────────────────────────
 export default function IDCardModal({ student, onClose }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await downloadCards(student);
+    } catch (e) {
+      console.error('Download failed:', e);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <>
       {/* Print CSS: only #id-card-print-root visible, landscape page */}
@@ -153,10 +279,18 @@ export default function IDCardModal({ student, onClose }) {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-semibold transition"
+              >
+                <Download className="w-4 h-4" />
+                {downloading ? 'Downloading…' : 'Download PNG'}
+              </button>
+              <button
                 onClick={() => window.print()}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"
               >
-                <Printer className="w-4 h-4" /> Print ID Card
+                <Printer className="w-4 h-4" /> Print
               </button>
               <button
                 onClick={onClose}
@@ -170,7 +304,7 @@ export default function IDCardModal({ student, onClose }) {
           {/* Preview */}
           <div className="p-6 overflow-auto">
             <p className="text-xs text-center text-gray-400 mb-4">
-              Preview — click <strong>Print ID Card</strong> to open the print dialog
+              Preview — <strong>Download PNG</strong> saves front &amp; back as separate images
             </p>
 
             {/* Column labels (hidden during print) */}
@@ -179,7 +313,7 @@ export default function IDCardModal({ student, onClose }) {
               <div style={{ width: W }} className="text-xs text-center text-gray-400 font-medium uppercase tracking-wide">Back</div>
             </div>
 
-            {/* Print root — only this div is visible when printing */}
+            {/* Print root */}
             <div id="id-card-print-root" className="flex gap-8 justify-center items-start">
               <CardFront s={student} />
               <CardBack />
@@ -188,7 +322,7 @@ export default function IDCardModal({ student, onClose }) {
 
           <div className="px-6 pb-5 text-center">
             <p className="text-xs text-gray-400">
-              Use <strong>landscape</strong> orientation in the print dialog for best results.
+              Use <strong>landscape</strong> orientation in the print dialog · PNG downloads front &amp; back separately
             </p>
           </div>
 

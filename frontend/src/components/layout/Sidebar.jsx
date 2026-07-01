@@ -13,6 +13,7 @@ const ROLE_MENUS = {
     { label: 'Classes', icon: BookOpen, path: '/admin/classes' },
     { label: 'Students', icon: GraduationCap, path: '/admin/students' },
     { label: 'Fee Management', icon: DollarSign, path: '/admin/fees' },
+    { label: 'Time Table', icon: Calendar, path: '/admin/timetable' },
     { label: 'Exams', icon: ClipboardList, path: '/admin/exams' },
     { label: 'Notices', icon: Bell, path: '/admin/notices' },
     { label: 'Reports', icon: BarChart2, path: '/admin/reports' },
