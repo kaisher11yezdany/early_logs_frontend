@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, AlertTriangle, Upload } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import BulkImportModal from '../../components/BulkImportModal';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -46,6 +47,7 @@ export default function StudentManagement() {
   const [classFilter, setClassFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);   // { _id, name }
   const [deleting, setDeleting] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -79,6 +81,12 @@ export default function StudentManagement() {
 
   return (
     <div className="space-y-5 fade-in">
+      {showImport && (
+        <BulkImportModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => { fetchData(); setShowImport(false); }}
+        />
+      )}
       {deleteTarget && (
         <ConfirmDelete
           name={deleteTarget.name}
@@ -91,12 +99,20 @@ export default function StudentManagement() {
         title="Student Management"
         subtitle="View and manage all enrolled students"
         action={
-          <button
-            className="btn-primary flex items-center gap-2"
-            onClick={() => navigate('/admin/students/add')}
-          >
-            <Plus className="w-4 h-4" /> Add Student
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+              onClick={() => setShowImport(true)}
+            >
+              <Upload className="w-4 h-4" /> Import CSV
+            </button>
+            <button
+              className="btn-primary flex items-center gap-2"
+              onClick={() => navigate('/admin/students/add')}
+            >
+              <Plus className="w-4 h-4" /> Add Student
+            </button>
+          </div>
         }
       />
 
