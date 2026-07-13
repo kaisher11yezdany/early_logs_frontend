@@ -14,6 +14,10 @@ import StudentManagement from './pages/admin/StudentManagement';
 import AddStudent from './pages/admin/AddStudent';
 import ViewStudent from './pages/admin/ViewStudent';
 import EditStudent from './pages/admin/EditStudent';
+import TeacherManagement from './pages/admin/TeacherManagement';
+import AddTeacher from './pages/admin/AddTeacher';
+import ViewTeacher from './pages/admin/ViewTeacher';
+import EditTeacher from './pages/admin/EditTeacher';
 import FeeManagement from './pages/admin/FeeManagement';
 import NoticeManagement from './pages/admin/NoticeManagement';
 import TimetableAdmin from './pages/admin/Timetable';
@@ -98,6 +102,10 @@ export default function App() {
             <Route path="/admin/students/add" element={<AddStudent />} />
             <Route path="/admin/students/:id/edit" element={<EditStudent />} />
             <Route path="/admin/students/:id" element={<ViewStudent />} />
+            <Route path="/admin/teachers" element={<TeacherManagement />} />
+            <Route path="/admin/teachers/add" element={<AddTeacher />} />
+            <Route path="/admin/teachers/:id/edit" element={<EditTeacher />} />
+            <Route path="/admin/teachers/:id" element={<ViewTeacher />} />
             <Route path="/admin/fees" element={<FeeManagement />} />
             <Route path="/admin/notices" element={<NoticeManagement />} />
             <Route path="/admin/timetable" element={<TimetableAdmin />} />

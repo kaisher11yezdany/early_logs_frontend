@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Users, BookOpen, ClipboardList, DollarSign,
-  Bell, GraduationCap, Library, BarChart2, Settings, LogOut,
+  Bell, GraduationCap, Library, BarChart2, LogOut,
   FileText, Calendar, CheckSquare, UserCheck, Book
 } from 'lucide-react';
 
@@ -12,6 +12,7 @@ const ROLE_MENUS = {
     { label: 'User Management', icon: Users, path: '/admin/users' },
     { label: 'Classes', icon: BookOpen, path: '/admin/classes' },
     { label: 'Students', icon: GraduationCap, path: '/admin/students' },
+    { label: 'Teachers', icon: Users, path: '/admin/teachers' },
     { label: 'Fee Management', icon: DollarSign, path: '/admin/fees' },
     { label: 'Time Table', icon: Calendar, path: '/admin/timetable' },
     { label: 'Exams', icon: ClipboardList, path: '/admin/exams' },

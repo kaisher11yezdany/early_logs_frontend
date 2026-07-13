@@ -48,6 +48,7 @@ export default function StudentManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);   // { _id, name }
   const [deleting, setDeleting] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -68,7 +69,7 @@ export default function StudentManagement() {
     setLoading(true);
     try {
       const [stuRes, clsRes] = await Promise.all([
-        api.get('/students', { params: { search, classId: classFilter } }),
+        api.get('/students', { params: { search, classId: classFilter, showInactive } }),
         api.get('/classes')
       ]);
       setStudents(stuRes.data.students || []);
@@ -77,7 +78,7 @@ export default function StudentManagement() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, [search, classFilter]);
+  useEffect(() => { fetchData(); }, [search, classFilter, showInactive]);
 
   return (
     <div className="space-y-5 fade-in">
@@ -139,6 +140,15 @@ export default function StudentManagement() {
               <option key={c._id} value={c._id}>{c.name} – {c.section}</option>
             ))}
           </select>
+          <button
+            onClick={() => setShowInactive(v => !v)}
+            className={`px-3 py-2 rounded-xl border text-sm font-semibold transition whitespace-nowrap
+              ${showInactive
+                ? 'bg-amber-50 border-amber-300 text-amber-700'
+                : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+          >
+            {showInactive ? 'Inactive Students' : 'Show Inactive'}
+          </button>
         </div>
       </div>
 
