@@ -269,6 +269,7 @@ export default function StudentManagement() {
                   <th className="table-header hidden sm:table-cell">Class</th>
                   <th className="table-header hidden md:table-cell">Gender</th>
                   <th className="table-header hidden md:table-cell">Parent</th>
+                  <th className="table-header hidden lg:table-cell">Created</th>
                   <th className="table-header">Actions</th>
                 </tr>
               </thead>
@@ -298,6 +299,9 @@ export default function StudentManagement() {
                       </td>
                       <td className="table-cell hidden md:table-cell capitalize text-gray-500">{s.gender || '—'}</td>
                       <td className="table-cell hidden md:table-cell text-gray-500">{s.parentInfo?.father?.name || '—'}</td>
+                      <td className="table-cell hidden lg:table-cell text-gray-400 text-xs">
+                        {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—'}
+                      </td>
                       <td className="table-cell">
                         <div className="flex items-center gap-1">
                           <button onClick={() => navigate(`/admin/students/${s._id}`)}
