@@ -8,7 +8,7 @@ const SYSTEM_FIELDS = [
   // Required
   { key: 'admissionNo',          label: 'Admission No',          required: true },
   { key: 'name',                 label: 'Student Name',          required: true },
-  { key: 'email',                label: 'Email',                 required: true },
+  { key: 'email',                label: 'Email',                 group: 'Personal' },
   // Academic
   { key: 'academicYear',         label: 'Academic Year',         group: 'Academic' },
   { key: 'className',            label: 'Class Name',            group: 'Academic' },
@@ -68,7 +68,7 @@ const SYSTEM_FIELDS = [
   { key: 'prevUdiseCode',        label: 'UDISE Code',            group: 'Previous School' },
 ];
 
-const REQUIRED_KEYS = ['admissionNo', 'name', 'email'];
+const REQUIRED_KEYS = ['admissionNo', 'name'];
 
 // Aliases for auto-detection (lowercase)
 const ALIASES = {
