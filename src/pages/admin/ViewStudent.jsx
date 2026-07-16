@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, GraduationCap, User, MapPin, Users, BookOpen,
   FileText, CheckCircle2, XCircle, Phone,
-  Hash, Pencil, Trash2, AlertTriangle, Download, FileCheck
+  Hash, Pencil, Trash2, AlertTriangle, Download, FileCheck, CreditCard
 } from 'lucide-react';
 import api from '../../api/axios';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import IDCardModal from '../../components/IDCardModal';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const val = (v) => (v !== undefined && v !== null && v !== '') ? v : '—';
@@ -103,6 +104,7 @@ export default function ViewStudent() {
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showIDCard, setShowIDCard] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -156,6 +158,9 @@ export default function ViewStudent() {
           deleting={deleting}
         />
       )}
+      {showIDCard && (
+        <IDCardModal student={s} onClose={() => setShowIDCard(false)} />
+      )}
 
       <div className="space-y-5 fade-in max-w-5xl mx-auto">
 
@@ -168,6 +173,12 @@ export default function ViewStudent() {
             <ArrowLeft className="w-4 h-4" /> Back to Students
           </button>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowIDCard(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-semibold transition border border-purple-200"
+            >
+              <CreditCard className="w-4 h-4" /> ID Card
+            </button>
             <button
               onClick={() => navigate(`/admin/students/${id}/edit`)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"
@@ -415,6 +426,12 @@ export default function ViewStudent() {
             <ArrowLeft className="w-4 h-4" /> Back to Students
           </button>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowIDCard(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-sm font-semibold transition border border-purple-200"
+            >
+              <CreditCard className="w-4 h-4" /> Print ID Card
+            </button>
             <button
               onClick={() => navigate(`/admin/students/${id}/edit`)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"

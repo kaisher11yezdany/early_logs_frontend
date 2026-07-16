@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Save, CheckCircle,
   ClipboardList, User, MapPin, Users, BookOpen, FileText, Check,
-  Upload, FileCheck, X
+  Upload, FileCheck, X, Camera
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -116,6 +116,38 @@ function studentToForm(s) {
   };
 }
 
+// ── Photo Upload Field ─────────────────────────────────────────────────────────
+function PhotoUploadField({ photoFile, existingPhotoUrl, onPhotoChange }) {
+  const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl || null;
+  return (
+    <div className="sm:col-span-2 flex flex-col items-center gap-2 py-2">
+      <div className="relative">
+        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-100 bg-gray-100 flex items-center justify-center">
+          {previewUrl
+            ? <img src={previewUrl} className="w-full h-full object-cover" alt="Student photo" />
+            : <User className="w-10 h-10 text-gray-300" />
+          }
+        </div>
+        <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition shadow-md">
+          <Camera className="w-4 h-4 text-white" />
+          <input type="file" className="sr-only" accept="image/jpeg,image/jpg,image/png"
+            onChange={e => onPhotoChange(e.target.files[0] || null)} />
+        </label>
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-gray-600">Student Photo</p>
+        <p className="text-xs text-gray-400">JPG, PNG · max 5 MB · used on ID card</p>
+      </div>
+      {photoFile && (
+        <button type="button" onClick={() => onPhotoChange(null)}
+          className="text-xs text-red-500 hover:text-red-600 transition">
+          Remove photo
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── File Upload Field ──────────────────────────────────────────────────────────
 function FileUploadField({ label, fieldName, file, existing, onFileChange }) {
   return (
@@ -201,10 +233,12 @@ export default function EditStudent() {
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState(new Set());
   const [files, setFiles] = useState({
+    photo: null,
     studentAadhar: null, fatherAadhar: null, motherAadhar: null,
     guardianAadhar: null, transferCertificate: null
   });
   const [existingUploads, setExistingUploads] = useState({});
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState(null);
 
   const onFileChange = (field, file) => setFiles(f => ({ ...f, [field]: file }));
 
@@ -216,6 +250,10 @@ export default function EditStudent() {
       const stu = stuRes.data.student;
       setForm(studentToForm(stu));
       setClasses(clsRes.data.classes || []);
+      if (stu.photo) {
+        const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '');
+        setExistingPhotoUrl(stu.photo.startsWith('http') ? stu.photo : `${apiBase}${stu.photo}`);
+      }
       if (stu.documentUploads) {
         const ex = {};
         Object.entries(stu.documentUploads).forEach(([k, v]) => { if (v?.originalName) ex[k] = v.originalName; });
@@ -476,6 +514,11 @@ export default function EditStudent() {
             {/* ── Section 1: Student Information ── */}
             {step === 1 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <PhotoUploadField
+                  photoFile={files.photo}
+                  existingPhotoUrl={existingPhotoUrl}
+                  onPhotoChange={f => onFileChange('photo', f)}
+                />
                 <div className="sm:col-span-2">
                   <Field label="Name of Student (as per Birth Certificate)" required>
                     <Input name="name" form={form} onChange={onChange} placeholder="Full name" />

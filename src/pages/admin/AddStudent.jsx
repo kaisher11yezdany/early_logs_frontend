@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Save, CheckCircle,
   ClipboardList, User, MapPin, Users, BookOpen, FileText, Check,
-  Upload, FileCheck, X
+  Upload, FileCheck, X, Camera
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -54,6 +54,38 @@ const INIT = {
   // Guardian info
   guardianName: '', guardianRelation: '', guardianAadharNo: '', guardianPhone: '',
 };
+
+// ── Photo Upload Field ─────────────────────────────────────────────────────────
+function PhotoUploadField({ photoFile, existingPhotoUrl, onPhotoChange }) {
+  const previewUrl = photoFile ? URL.createObjectURL(photoFile) : existingPhotoUrl || null;
+  return (
+    <div className="sm:col-span-2 flex flex-col items-center gap-2 py-2">
+      <div className="relative">
+        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-100 bg-gray-100 flex items-center justify-center">
+          {previewUrl
+            ? <img src={previewUrl} className="w-full h-full object-cover" alt="Student photo" />
+            : <User className="w-10 h-10 text-gray-300" />
+          }
+        </div>
+        <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition shadow-md">
+          <Camera className="w-4 h-4 text-white" />
+          <input type="file" className="sr-only" accept="image/jpeg,image/jpg,image/png"
+            onChange={e => onPhotoChange(e.target.files[0] || null)} />
+        </label>
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-gray-600">Student Photo</p>
+        <p className="text-xs text-gray-400">JPG, PNG · max 5 MB · used on ID card</p>
+      </div>
+      {photoFile && (
+        <button type="button" onClick={() => onPhotoChange(null)}
+          className="text-xs text-red-500 hover:text-red-600 transition">
+          Remove photo
+        </button>
+      )}
+    </div>
+  );
+}
 
 // ── File Upload Field ──────────────────────────────────────────────────────────
 function FileUploadField({ label, fieldName, file, onFileChange }) {
@@ -141,6 +173,7 @@ export default function AddStudent() {
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState(new Set());
   const [files, setFiles] = useState({
+    photo: null,
     studentAadhar: null, fatherAadhar: null, motherAadhar: null,
     guardianAadhar: null, transferCertificate: null
   });
@@ -381,6 +414,10 @@ export default function AddStudent() {
             {/* ── Section 1: Student Information ── */}
             {step === 1 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <PhotoUploadField
+                  photoFile={files.photo}
+                  onPhotoChange={f => onFileChange('photo', f)}
+                />
                 <div className="sm:col-span-2">
                   <Field label="Name of Student (as per Birth Certificate)" required>
                     <Input name="name" form={form} onChange={onChange} placeholder="Full name exactly as on birth certificate" />
