@@ -69,7 +69,7 @@ export default function StudentManagement() {
     setLoading(true);
     try {
       const [stuRes, clsRes] = await Promise.all([
-        api.get('/students', { params: { search, classId: classFilter, showInactive } }),
+        api.get('/students', { params: { search, classId: classFilter, showInactive, limit: 1000 } }),
         api.get('/classes')
       ]);
       setStudents(stuRes.data.students || []);
