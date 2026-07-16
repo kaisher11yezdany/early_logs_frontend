@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Pencil, Trash2, AlertTriangle, Upload } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, AlertTriangle, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -38,17 +38,71 @@ function ConfirmDelete({ name, onConfirm, onCancel, deleting }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
+function Pagination({ page, total, limit, onChange }) {
+  const pages = Math.ceil(total / limit);
+  if (pages <= 1) return null;
+  const from = (page - 1) * limit + 1;
+  const to   = Math.min(page * limit, total);
+
+  const getPageNums = () => {
+    if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+    if (page <= 4) return [1, 2, 3, 4, 5, '…', pages];
+    if (page >= pages - 3) return [1, '…', pages-4, pages-3, pages-2, pages-1, pages];
+    return [1, '…', page-1, page, page+1, '…', pages];
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 border-t border-gray-100">
+      <p className="text-xs text-gray-400">
+        Showing <span className="font-semibold text-gray-600">{from}–{to}</span> of <span className="font-semibold text-gray-600">{total}</span> students
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        {getPageNums().map((p, i) =>
+          p === '…'
+            ? <span key={`e${i}`} className="px-2 text-gray-400 text-sm">…</span>
+            : <button
+                key={p}
+                onClick={() => onChange(p)}
+                className={`w-8 h-8 rounded-lg text-sm font-semibold transition
+                  ${p === page
+                    ? 'bg-blue-600 text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >{p}</button>
+        )}
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page === pages}
+          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentManagement() {
   const navigate = useNavigate();
-  const [students, setStudents] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [students, setStudents]     = useState([]);
+  const [classes, setClasses]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
   const [classFilter, setClassFilter] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState(null);   // { _id, name }
-  const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting]     = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [page, setPage]             = useState(1);
+  const [total, setTotal]           = useState(0);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -65,20 +119,24 @@ export default function StudentManagement() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [stuRes, clsRes] = await Promise.all([
-        api.get('/students', { params: { search, classId: classFilter, showInactive, limit: 1000 } }),
+        api.get('/students', { params: { search, classId: classFilter, showInactive, page, limit: PAGE_SIZE } }),
         api.get('/classes')
       ]);
       setStudents(stuRes.data.students || []);
+      setTotal(stuRes.data.total || 0);
       setClasses(clsRes.data.classes || []);
     } catch { toast.error('Failed to load data'); }
     finally { setLoading(false); }
-  };
+  }, [search, classFilter, showInactive, page]);
 
-  useEffect(() => { fetchData(); }, [search, classFilter, showInactive]);
+  // Reset to page 1 when filters change
+  useEffect(() => { setPage(1); }, [search, classFilter, showInactive]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   return (
     <div className="space-y-5 fade-in">
@@ -235,6 +293,7 @@ export default function StudentManagement() {
             </table>
           </div>
         )}
+        <Pagination page={page} total={total} limit={PAGE_SIZE} onChange={setPage} />
       </div>
     </div>
   );
