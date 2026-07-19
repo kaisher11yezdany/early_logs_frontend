@@ -40,14 +40,15 @@ function roundedClip(ctx, x, y, w, h, r) {
 }
 
 async function downloadCards(student) {
-  const name  = student.user?.name  || '—';
-  const cls   = student.class
+  const name   = student.user?.name  || '—';
+  const cls    = student.class
     ? `${student.class.name}${student.class.section ? ' - ' + student.class.section : ''}`
     : '—';
-  const phone = student.user?.phone || '—';
-  const dob   = fmt(student.dateOfBirth);
-  const blood = student.bloodGroup  || '—';
-  const base  = (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '');
+  const phone  = student.user?.phone || '—';
+  const dob    = fmt(student.dateOfBirth);
+  const father = student.parentInfo?.father?.name || '—';
+  const mother = student.parentInfo?.mother?.name || '—';
+  const base   = (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '');
   const photoUrl = student.photo
     ? (student.photo.startsWith('http') ? student.photo : `${base}${student.photo}`)
     : null;
@@ -104,11 +105,11 @@ async function downloadCards(student) {
   ctx.textBaseline = 'top';
   ctx.fillText(name.toUpperCase(), W / 2, 292);
 
-  // Field values (mirrors React: left=154, fontSize=11, top=330/356/381/407)
+  // Field values: Class, DOB, Father Name, Mother Name, Phone No.
   ctx.font = '600 11px Arial, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  [[cls, 330], [phone, 356], [dob, 381], [blood, 407]].forEach(([val, top]) => {
+  [[cls, 306], [dob, 327], [father, 354], [mother, 381], [phone, 407]].forEach(([val, top]) => {
     ctx.fillText(val, 154, top);
   });
 
@@ -136,11 +137,12 @@ async function downloadCards(student) {
 
 // ── Front card: image template + absolute overlays ──────────────────────────
 function CardFront({ s }) {
-  const name  = s.user?.name  || '—';
-  const cls   = s.class ? `${s.class.name}${s.class.section ? ' - ' + s.class.section : ''}` : '—';
-  const phone = s.user?.phone || '—';
-  const dob   = fmt(s.dateOfBirth);
-  const blood = s.bloodGroup  || '—';
+  const name   = s.user?.name  || '—';
+  const cls    = s.class ? `${s.class.name}${s.class.section ? ' - ' + s.class.section : ''}` : '—';
+  const phone  = s.user?.phone || '—';
+  const dob    = fmt(s.dateOfBirth);
+  const father = s.parentInfo?.father?.name || '—';
+  const mother = s.parentInfo?.mother?.name || '—';
 
   const base    = import.meta.env.VITE_API_URL
     ? import.meta.env.VITE_API_URL.replace(/\/api$/, '')
@@ -180,10 +182,10 @@ function CardFront({ s }) {
 
       {/* Student name */}
       <div style={{
-        position: 'absolute', left: 0, top: 292, width: W,
+        position: 'absolute', left: 0, top: 288, width: W,
         textAlign: 'center',
         fontFamily: 'Arial Black, Arial, sans-serif',
-        fontSize: 17, fontWeight: '900',
+        fontSize: 14, fontWeight: '900',
         color: '#1e3a8a', letterSpacing: 0.5,
         textTransform: 'uppercase',
         lineHeight: 1,
@@ -191,12 +193,13 @@ function CardFront({ s }) {
         {name}
       </div>
 
-      {/* Field values */}
+      {/* Field values: Class, DOB, Father Name, Mother Name, Phone No. */}
       {[
-        { value: cls,   top: 330 },
-        { value: phone, top: 356 },
-        { value: dob,   top: 381 },
-        { value: blood, top: 407 },
+        { value: cls,    top: 306 },
+        { value: dob,    top: 327 },
+        { value: father, top: 348 },
+        { value: mother, top: 367 },
+        { value: phone,  top: 387 },
       ].map(({ value, top }) => (
         <div key={top} style={{
           position: 'absolute', left: 154, top,
